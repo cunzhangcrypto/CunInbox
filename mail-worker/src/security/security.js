@@ -133,18 +133,24 @@ app.use('*', async (c, next) => {
 		return path.startsWith(item);
 	});
 
+	// 用 DB 最新数据判断是否为管理员（不信任 KV 快照中的 authInfo.user.email，
+	// 因为该快照是登录时存的，可能早于邮箱自动修正）
+	const { isAdmin, userRow: latestUser } = await userService.isAdminUser(c, authInfo.user.userId);
+
 	if (permIndex > -1) {
 
-		const permKeys = await permService.userPermKeys(c, authInfo.user.userId);
+		if (!isAdmin) {
+			const permKeys = await permService.userPermKeys(c, authInfo.user.userId);
 
-		const userPaths = permKeyToPaths(permKeys);
+			const userPaths = permKeyToPaths(permKeys);
 
-		const userPermIndex = userPaths.findIndex(item => {
-			return path.startsWith(item);
-		});
+			const userPermIndex = userPaths.findIndex(item => {
+				return path.startsWith(item);
+			});
 
-		if (userPermIndex === -1 && !userService.isAdminEmail(c, authInfo.user.email)) {
-			throw new BizError(t('unauthorized'), 403);
+			if (userPermIndex === -1) {
+				throw new BizError(t('unauthorized'), 403);
+			}
 		}
 
 	}
@@ -158,7 +164,8 @@ app.use('*', async (c, next) => {
 		await c.env.kv.put(KvConst.AUTH_INFO + userId, JSON.stringify(authInfo), { expirationTtl: constant.TOKEN_EXPIRE });
 	}
 
-	c.set('user',authInfo.user)
+	// 使用 DB 最新 userRow（email 可能已被自动修正），避免旧 KV 快照的 email 泄漏到后续 handler
+	c.set('user', latestUser || authInfo.user)
 
 	return await next();
 });

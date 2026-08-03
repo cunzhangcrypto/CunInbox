@@ -46,54 +46,71 @@ import oauthService from "./oauth-service";
 		/** 暴露给其他 service 判断是否是管理员邮箱 */
 		isAdminEmail,
 
+		/**
+		 * 判断某个用户是否为管理员（查 DB 最新数据，不依赖 KV 快照）
+		 * 三重判定：
+		 *   1) email 标准化后 == env.admin → 管理员
+		 *   2) 标准化相同但原始值不同 → 自动修正 DB(user/account 表) 后视为管理员
+		 *   3) 系统仅 1 个用户且 admin 邮箱无人注册 → 临时视为管理员（避免锁死系统）
+		 * @returns {Promise<{isAdmin: boolean, userRow: object}>}
+		 */
+		async isAdminUser(c, userId) {
+			const userRow = await userService.selectById(c, userId);
+			if (!userRow) {
+				return { isAdmin: false, userRow: null };
+			}
+
+			// 1) 标准化后比较
+			let adminMatched = isAdminEmail(c, userRow.email);
+
+			// 2) 若标准化不匹配，但「存储值标准化后 == env.admin 标准化后」但原始值不一致
+			//    （典型：用户注册输入 Admin@xxx.com，env.admin 是 admin@xxx.com）
+			//    → 自动把 DB 中的 user.email / account.email 修正为标准化值
+			if (!adminMatched) {
+				const storedNorm = normEmail(userRow.email);
+				const envNorm = normEmail(c?.env?.admin);
+				if (storedNorm && envNorm && storedNorm === envNorm) {
+					console.warn('[user] 检测到管理员邮箱存储值与 env.admin 仅大小写/空格不同，自动修正 DB:', userRow.email, '→', c.env.admin);
+					try {
+						const fixedEmail = normEmail(c.env.admin) || c.env.admin;
+						await orm(c).update(user)
+							.set({ email: fixedEmail })
+							.where(eq(user.userId, userId)).run();
+						// 同步修正 account 表 email
+						await orm(c).update(account)
+							.set({ email: fixedEmail })
+							.where(eq(account.userId, userId)).run();
+						userRow.email = fixedEmail;
+					} catch (e) {
+						console.warn('[user] 自动修正邮箱失败:', e.message);
+					}
+					adminMatched = true;
+				}
+			}
+
+			// 3) 兜底：系统里只有 1 个用户且 env.admin 配置的邮箱根本没人注册，把唯一用户当管理员
+			//    （避免配置 Secret 时拼写错误导致没人能管系统）
+			if (!adminMatched) {
+				try {
+					const { total } = await orm(c).select({ total: count() }).from(user).where(eq(user.isDel, 0)).get();
+					if (total === 1) {
+						adminMatched = true;
+						console.warn('[user] 系统中仅有 1 个用户，且 env.admin 未匹配到注册用户。将该用户视为临时管理员（建议修正 ADMIN Secret 后重新注册）');
+					}
+				} catch (e) {
+					console.warn('[user] 统计用户数失败:', e.message);
+				}
+			}
+
+			return { isAdmin: adminMatched, userRow };
+		},
+
 	async loginUserInfo(c, userId) {
 
-		const userRow = await userService.selectById(c, userId);
+		const { isAdmin: adminMatched, userRow } = await userService.isAdminUser(c, userId);
 
 		if (!userRow) {
 			throw new BizError(t('authExpired'), 401);
-		}
-
-		// --- 管理员判定与自动修复 ---
-		// 1) 标准化后比较
-		let adminMatched = isAdminEmail(c, userRow.email);
-
-		// 2) 若标准化不匹配，但「用户 email 标准化后 == env.admin 标准化后」但原始值不一致
-		//    （典型：用户注册输入 Admin@xxx.com，env.admin 是 admin@xxx.com）
-		//    → 自动把 DB 中的 user.email 修正为标准化值
-		if (!adminMatched) {
-			const storedNorm = normEmail(userRow.email);
-			const envNorm = normEmail(c?.env?.admin);
-			if (storedNorm && envNorm && storedNorm === envNorm) {
-				console.warn('[user] 检测到管理员邮箱存储值与 env.admin 仅大小写/空格不同，自动修正 DB:', userRow.email, '→', c.env.admin);
-				try {
-					await orm(c).update(user)
-						.set({ email: normEmail(c.env.admin) || c.env.admin })
-						.where(eq(user.userId, userId)).run();
-					userRow.email = normEmail(c.env.admin) || c.env.admin;
-					// 同步修正 account 表 email
-					await orm(c).update(account)
-						.set({ email: userRow.email })
-						.where(eq(account.userId, userId)).run();
-				} catch (e) {
-					console.warn('[user] 自动修正邮箱失败:', e.message);
-				}
-				adminMatched = true;
-			}
-		}
-
-		// 3) 兜底：如果系统里只有 1 个用户且 env.admin 配置的邮箱根本没人注册，把唯一用户当管理员登录
-		//    （避免配置 Secret 时拼写错误导致没人能管系统）
-		if (!adminMatched) {
-			try {
-				const { total } = await orm(c).select({ total: count() }).from(user).where(eq(user.isDel, 0)).get();
-				if (total === 1) {
-					adminMatched = true;
-					console.warn('[user] 系统中仅有 1 个用户，且 env.admin 未匹配到注册用户。将该用户视为临时管理员（建议修正 ADMIN Secret 后重新注册）');
-				}
-			} catch (e) {
-				console.warn('[user] 统计用户数失败:', e.message);
-			}
 		}
 
 		const [account, roleRow, permKeys] = await Promise.all([
