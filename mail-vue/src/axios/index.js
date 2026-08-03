@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, {getAdapter} from "axios";
 import router from "@/router";
 import i18n from "@/i18n/index.js";
 import {useSettingStore} from "@/store/setting.js";
@@ -31,6 +31,9 @@ function demoAdapter(config) {
     });
 }
 
+// axios v1.x 的 defaults.adapter 是 ['xhr','http'] 数组而非函数，需用 getAdapter 转换
+const defaultAdapter = getAdapter(['xhr', 'http']);
+
 let http = axios.create({
     baseURL: import.meta.env.VITE_BASE_URL,
     timeout: 8000,
@@ -40,7 +43,7 @@ let http = axios.create({
             return demoAdapter(config);
         }
         // 正常模式：使用默认 adapter
-        return axios.defaults.adapter(config);
+        return defaultAdapter(config);
     }
 });
 
