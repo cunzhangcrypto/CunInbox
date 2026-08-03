@@ -22,6 +22,9 @@ id = "${KV_NAMESPACE_ID}" # 使用占位符引用环境变量
 binding = "r2"
 bucket_name = "${R2_BUCKET_NAME}" # 使用占位符引用环境变量
 
+[ai]
+binding = "AI" # Workers AI 绑定（免费额度），用于 AI 助手 / 邮件理解 / 数字身份识别
+
 [assets]
 binding = "assets"		#静态资源绑定名默认不可修改
 directory = "./dist"	#前端vue项目打包的静态资源存放位置,默认dist

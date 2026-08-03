@@ -437,7 +437,7 @@
               </div>
               <div class="concerning-item">
                 <span>{{ $t('support') }} : </span>
-                <el-button @click="jump('https://www.cunzhangblog.com/cunmail')">
+                <el-button @click="jump('https://www.czlab.dev/support')">
                   {{ t('supportDesc') }}
                   <template #icon>
                     <Icon color="#79D6B5" icon="simple-icons:buymeacoffee" width="20" height="20"/>
@@ -446,7 +446,7 @@
               </div>
               <div class="concerning-item">
                 <span>{{ $t('help') }} : </span>
-                <el-button @click="jump('https://www.cunzhangblog.com')">
+                <el-button @click="jump('https://github.com/cunzhangcrypto/CunInbox#readme')">
                   {{ t('document') }}
                   <template #icon>
                     <Icon color="#79D6B5" icon="fluent-color:document-32" width="18" height="18"/>

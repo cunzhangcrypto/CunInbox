@@ -22,6 +22,9 @@ id = "2io01d4b299e481b9de060ece9e7785c"
 #binding = "r2"
 #bucket_name = "email"
 
+[ai]
+binding = "AI" # Workers AI 绑定（免费额度），用于 AI 助手 / 邮件理解 / 数字身份识别
+
 [assets]
 binding = "assets"
 directory = "./dist"
