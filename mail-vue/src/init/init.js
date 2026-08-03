@@ -151,10 +151,15 @@ export async function init() {
                 } catch (e) {}
             }
         } else {
-            // 无 token 时直接用默认配置，不发请求（避免后端不可用时的 TCP 连接延迟）
-            setting = DEFAULT_SETTING;
+            // 无 token 时也调用公开接口 websiteConfig 获取域名列表（登录页需要）
+            try {
+                setting = await websiteConfig();
+            } catch (e) {
+                console.error(e);
+                setting = DEFAULT_SETTING;
+            }
             settingStore.settings = setting;
-            settingStore.domainList = [];
+            settingStore.domainList = setting.domainList || [];
             document.title = setting.title || 'CunInbox';
         }
     } catch (e) {
