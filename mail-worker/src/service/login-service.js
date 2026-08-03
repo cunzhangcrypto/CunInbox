@@ -24,7 +24,10 @@ const loginService = {
 
 	async register(c, params, oauth = false) {
 
-		const { email, password, token, code } = params;
+		// 注册时邮箱强制规范化：trim + toLowerCase，避免空格/大小写导致后续管理员判定失败
+		const rawEmail = params.email;
+		const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : rawEmail;
+		const { password, token, code } = params;
 
 		let { regKey, register, registerVerify, regVerifyCount, minEmailPrefix, emailPrefixFilter } = await settingService.query(c)
 
@@ -201,7 +204,10 @@ const loginService = {
 
 	async login(c, params, noVerifyPwd = false) {
 
-		const { email, password } = params;
+		const rawEmail = params.email;
+		// 登录查询邮箱前同样标准化，避免空格/大小写/零宽字符导致查不到或 admin 不匹配
+		const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : rawEmail;
+		const { password } = params;
 
 		if ((!email || !password) && !noVerifyPwd) {
 			throw new BizError(t('emailAndPwdEmpty'));

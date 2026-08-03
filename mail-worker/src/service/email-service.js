@@ -181,7 +181,7 @@ const emailService = {
 			return domainList.includes(domain);
 		});
 
-		if (c.env.admin !== userRow.email) {
+		if (!userService.isAdminEmail(c, userRow.email)) {
 
 			//发件被禁用
 			if (roleRow.sendType === 'ban') {
@@ -196,7 +196,7 @@ const emailService = {
 		}
 
 		//如果不是管理员，权限设置了发送次数
-		if (c.env.admin !== userRow.email && roleRow.sendCount) {
+		if (!userService.isAdminEmail(c, userRow.email) && roleRow.sendCount) {
 
 			if (userRow.sendCount >= roleRow.sendCount) {
 				if (roleRow.sendType === 'day') throw new BizError(t('daySendLimit'), 403);
@@ -220,7 +220,7 @@ const emailService = {
 			throw new BizError(t('sendEmailNotCurUser'));
 		}
 
-		if (c.env.admin !== userRow.email) {
+		if (!userService.isAdminEmail(c, userRow.email)) {
 			//用户没有这个域名的使用权限
 			if(!roleService.hasAvailDomainPerm(roleRow.availDomain, accountRow.email)) {
 				throw new BizError(t('noDomainPermSend'),403)
@@ -408,7 +408,7 @@ const emailService = {
 				let { banEmail, availDomain } = roleRow;
 
 				//如果收件人没有这个域名的使用权限和有邮件拦截，就把邮件改为拒收状态
-				if (email !== c.env.admin) {
+				if (!userService.isAdminEmail(c, email)) {
 
 					if (!roleService.hasAvailDomainPerm(availDomain, email)) {
 						emailValues.status = emailConst.status.BOUNCED;

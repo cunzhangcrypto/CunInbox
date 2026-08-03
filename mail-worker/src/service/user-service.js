@@ -2,6 +2,7 @@ import BizError from '../error/biz-error';
 import accountService from './account-service';
 import orm from '../entity/orm';
 import user from '../entity/user';
+import account from '../entity/account';
 import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import { emailConst, isDel, roleConst, userConst } from '../const/entity-const';
 import kvConst from '../const/kv-const';
@@ -19,7 +20,31 @@ import reqUtils from '../utils/req-utils';
 import {oauth} from "../entity/oauth";
 import oauthService from "./oauth-service";
 
-const userService = {
+/**
+	 * 邮箱标准化比较：trim + toLowerCase + 去零宽字符，避免空格/大小写/BOM 导致不匹配
+	 */
+	function normEmail(s) {
+		if (typeof s !== 'string') return '';
+		return s
+			.replace(/[\u200B-\u200F\uFEFF\u034F\u00A0\u3000\u00AD]/g, '')
+			.trim()
+			.toLowerCase();
+	}
+
+	/**
+	 * 判断某个 email 是否等于 env.admin（标准化后比较）
+	 */
+	function isAdminEmail(c, email) {
+		return normEmail(c?.env?.admin) === normEmail(email);
+	}
+
+	const userService = {
+
+		/** 暴露给其他 service 用的邮箱标准化函数 */
+		normEmail,
+
+		/** 暴露给其他 service 判断是否是管理员邮箱 */
+		isAdminEmail,
 
 	async loginUserInfo(c, userId) {
 
@@ -29,28 +54,70 @@ const userService = {
 			throw new BizError(t('authExpired'), 401);
 		}
 
+		// --- 管理员判定与自动修复 ---
+		// 1) 标准化后比较
+		let adminMatched = isAdminEmail(c, userRow.email);
+
+		// 2) 若标准化不匹配，但「用户 email 标准化后 == env.admin 标准化后」但原始值不一致
+		//    （典型：用户注册输入 Admin@xxx.com，env.admin 是 admin@xxx.com）
+		//    → 自动把 DB 中的 user.email 修正为标准化值
+		if (!adminMatched) {
+			const storedNorm = normEmail(userRow.email);
+			const envNorm = normEmail(c?.env?.admin);
+			if (storedNorm && envNorm && storedNorm === envNorm) {
+				console.warn('[user] 检测到管理员邮箱存储值与 env.admin 仅大小写/空格不同，自动修正 DB:', userRow.email, '→', c.env.admin);
+				try {
+					await orm(c).update(user)
+						.set({ email: normEmail(c.env.admin) || c.env.admin })
+						.where(eq(user.userId, userId)).run();
+					userRow.email = normEmail(c.env.admin) || c.env.admin;
+					// 同步修正 account 表 email
+					await orm(c).update(account)
+						.set({ email: userRow.email })
+						.where(eq(account.userId, userId)).run();
+				} catch (e) {
+					console.warn('[user] 自动修正邮箱失败:', e.message);
+				}
+				adminMatched = true;
+			}
+		}
+
+		// 3) 兜底：如果系统里只有 1 个用户且 env.admin 配置的邮箱根本没人注册，把唯一用户当管理员登录
+		//    （避免配置 Secret 时拼写错误导致没人能管系统）
+		if (!adminMatched) {
+			try {
+				const { total } = await orm(c).select({ total: count() }).from(user).where(eq(user.isDel, 0)).get();
+				if (total === 1) {
+					adminMatched = true;
+					console.warn('[user] 系统中仅有 1 个用户，且 env.admin 未匹配到注册用户。将该用户视为临时管理员（建议修正 ADMIN Secret 后重新注册）');
+				}
+			} catch (e) {
+				console.warn('[user] 统计用户数失败:', e.message);
+			}
+		}
+
 		const [account, roleRow, permKeys] = await Promise.all([
 			accountService.selectByEmailIncludeDel(c, userRow.email),
 			roleService.selectById(c, userRow.type),
-			userRow.email === c.env.admin ? Promise.resolve(['*']) : permService.userPermKeys(c, userId)
+			adminMatched ? Promise.resolve(['*']) : permService.userPermKeys(c, userId)
 		]);
 
-		const user = {};
-		user.userId = userRow.userId;
-		user.sendCount = userRow.sendCount;
-		user.email = userRow.email;
-		user.account = account;
-		user.name = account.name;
-		user.permKeys = permKeys;
-		user.role = roleRow;
-		user.type = userRow.type;
+		const userObj = {};
+		userObj.userId = userRow.userId;
+		userObj.sendCount = userRow.sendCount;
+		userObj.email = userRow.email;
+		userObj.account = account;
+		userObj.name = account?.name;
+		userObj.permKeys = permKeys;
+		userObj.role = roleRow;
+		userObj.type = userRow.type;
 
-		if (c.env.admin === userRow.email) {
-			user.role = constant.ADMIN_ROLE
-			user.type = 0;
+		if (adminMatched) {
+			userObj.role = constant.ADMIN_ROLE
+			userObj.type = 0;
 		}
 
-		return user;
+		return userObj;
 	},
 
 
@@ -206,7 +273,7 @@ const userService = {
 				sendAction.hasPerm = false;
 			}
 
-			if (user.email === c.env.admin) {
+			if (isAdminEmail(c, user.email)) {
 				sendAction.sendType = constant.ADMIN_ROLE.sendType;
 				sendAction.sendCount = constant.ADMIN_ROLE.sendCount;
 				sendAction.hasPerm = true;

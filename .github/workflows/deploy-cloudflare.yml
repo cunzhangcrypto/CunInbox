@@ -63,7 +63,20 @@ jobs:
         run: |
           
           echo "🔐 Starting environment setup..."
-          
+
+          # --- Secret 标准化：去除 GitHub Secret 复制时常见的前后空格/BOM/零宽字符 ---
+          JWT_SECRET=$(echo "$JWT_SECRET" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
+          ADMIN=$(echo "$ADMIN" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad' | tr '[:upper:]' '[:lower:]')
+          DOMAIN=$(echo "$DOMAIN" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
+          CLOUDFLARE_ACCOUNT_ID=$(echo "$CLOUDFLARE_ACCOUNT_ID" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
+          CLOUDFLARE_API_TOKEN=$(echo "$CLOUDFLARE_API_TOKEN" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
+          D1_DATABASE_ID=$(echo "$D1_DATABASE_ID" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
+          KV_NAMESPACE_ID=$(echo "$KV_NAMESPACE_ID" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
+          R2_BUCKET_NAME=$(echo "$R2_BUCKET_NAME" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
+          CUSTOM_DOMAIN=$(echo "$CUSTOM_DOMAIN" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
+          NAME=$(echo "$NAME" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
+          # ADMIN 邮箱强制小写（避免邮件系统大小写不一致导致管理员匹配失败）
+
           if [ -z "$JWT_SECRET" ] || grep -q '[?%#/\\]' <<< "$JWT_SECRET"; then
             echo "❌ JWT_SECRET variable is empty or contains invalid characters (?, %, #, /, \\)."
             exit 1
@@ -78,6 +91,8 @@ jobs:
             echo "❌ ADMIN variable cannot be empty."
             exit 1
           fi
+
+          echo "🔧 Sanitized secrets → ADMIN=$ADMIN DOMAIN=$DOMAIN NAME=$NAME"
           
           if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
             echo "❌ CLOUDFLARE_ACCOUNT_ID variable cannot be empty."
