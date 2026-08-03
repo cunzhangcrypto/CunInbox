@@ -64,35 +64,46 @@ jobs:
           
           echo "🔐 Starting environment setup..."
 
-          # --- Secret 标准化：去除 GitHub Secret 复制时常见的前后空格/BOM/零宽字符 ---
-          JWT_SECRET=$(echo "$JWT_SECRET" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
-          ADMIN=$(echo "$ADMIN" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad' | tr '[:upper:]' '[:lower:]')
-          DOMAIN=$(echo "$DOMAIN" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
-          CLOUDFLARE_ACCOUNT_ID=$(echo "$CLOUDFLARE_ACCOUNT_ID" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
-          CLOUDFLARE_API_TOKEN=$(echo "$CLOUDFLARE_API_TOKEN" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
-          D1_DATABASE_ID=$(echo "$D1_DATABASE_ID" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
-          KV_NAMESPACE_ID=$(echo "$KV_NAMESPACE_ID" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
-          R2_BUCKET_NAME=$(echo "$R2_BUCKET_NAME" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
-          CUSTOM_DOMAIN=$(echo "$CUSTOM_DOMAIN" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
-          NAME=$(echo "$NAME" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr -d '\u200b\u200c\u200d\u200e\u200f\ufeff\u034f\u00ad')
-          # ADMIN 邮箱强制小写（避免邮件系统大小写不一致导致管理员匹配失败）
+          # --- Secret 标准化：去除 GitHub Secret 复制时常见的前后空格 ---
+          # 注意：不能用 tr -d '\u200b...'，GNU tr 不支持 \u 转义，会把 \u200b 当成字面字符 u/2/0/b 删掉
+          trim_secret() {
+            sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+          }
+
+          JWT_SECRET=$(printf '%s' "$JWT_SECRET" | trim_secret)
+          ADMIN=$(printf '%s' "$ADMIN" | trim_secret | tr '[:upper:]' '[:lower:]')
+          DOMAIN=$(printf '%s' "$DOMAIN" | trim_secret)
+          CLOUDFLARE_ACCOUNT_ID=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | trim_secret)
+          CLOUDFLARE_API_TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | trim_secret)
+          D1_DATABASE_ID=$(printf '%s' "$D1_DATABASE_ID" | trim_secret)
+          KV_NAMESPACE_ID=$(printf '%s' "$KV_NAMESPACE_ID" | trim_secret)
+          R2_BUCKET_NAME=$(printf '%s' "$R2_BUCKET_NAME" | trim_secret)
+          CUSTOM_DOMAIN=$(printf '%s' "$CUSTOM_DOMAIN" | trim_secret)
+          NAME=$(printf '%s' "$NAME" | trim_secret)
 
           if [ -z "$JWT_SECRET" ] || grep -q '[?%#/\\]' <<< "$JWT_SECRET"; then
             echo "❌ JWT_SECRET variable is empty or contains invalid characters (?, %, #, /, \\)."
             exit 1
           fi
-          
+
           if ! jq -e 'type == "array"' <<< "$DOMAIN" ; then
             echo "❌ DOMAIN variable must be a JSON array (e.g., [\"example.com\"])."
             exit 1
           fi
-          
+
           if [ -z "$ADMIN" ]; then
             echo "❌ ADMIN variable cannot be empty."
             exit 1
           fi
 
           echo "🔧 Sanitized secrets → ADMIN=$ADMIN DOMAIN=$DOMAIN NAME=$NAME"
+
+          # 将 trim 后的值写入 GITHUB_ENV，让后续步骤（如 init）使用相同的值
+          echo "JWT_SECRET=$JWT_SECRET" >> $GITHUB_ENV
+          echo "ADMIN=$ADMIN" >> $GITHUB_ENV
+          echo "DOMAIN=$DOMAIN" >> $GITHUB_ENV
+          echo "CUSTOM_DOMAIN=$CUSTOM_DOMAIN" >> $GITHUB_ENV
+          echo "NAME=$NAME" >> $GITHUB_ENV
           
           if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
             echo "❌ CLOUDFLARE_ACCOUNT_ID variable cannot be empty."
@@ -245,16 +256,20 @@ jobs:
         run: |
           echo "🛠️ Starting database initialization..."
           sleep 15
-          
+
           WORKER_URL="${CUSTOM_DOMAIN:+https://$CUSTOM_DOMAIN}"
           WORKER_URL="${WORKER_URL:-${{ steps.deploy.outputs.worker_url }}}"
-          
+
           if [ -z "$WORKER_URL" ]; then
             echo "❌ Preview URL not available. Please set CUSTOM_DOMAIN."
             exit 1
           fi
-          
-          HTTP_CODE=$(curl -sL -w "%{http_code}" -o response.txt "$WORKER_URL/api/init/${JWT_SECRET}")
+
+          # URL-encode JWT_SECRET 以安全地放入 URL 路径（此时 JWT_SECRET 来自 GITHUB_ENV，已 trim）
+          JWT_SECRET_ENCODED=$(printf '%s' "$JWT_SECRET" | jq -sRr @uri | sed 's/%0A$//')
+
+          echo "🔑 Calling init endpoint..."
+          HTTP_CODE=$(curl -sL -w "%{http_code}" -o response.txt "$WORKER_URL/api/init/${JWT_SECRET_ENCODED}")
           RESPONSE_BODY=$(cat response.txt)
 
           if [ "$RESPONSE_BODY" = "success" ]; then
