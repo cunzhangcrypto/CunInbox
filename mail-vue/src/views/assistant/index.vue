@@ -282,7 +282,7 @@ async function sendMsg() {
   await nextTick()
   msgBox.value.scrollTop = msgBox.value.scrollHeight
   try {
-    const res = await aiChat(msg).catch(() => null)
+    const res = await aiChat(msg)
     // 拦截器已 resolve(data.data)，res = {reply, timestamp, provider, providerName, fallback}
     if (res && res.reply) {
       messages.value.push({role: 'assistant', content: res.reply})
@@ -294,9 +294,13 @@ async function sendMsg() {
           ElMessage.warning(`主用 AI 不可用，已自动降级到 ${res.providerName}`)
         }
       }
+    } else {
+      messages.value.push({role: 'assistant', content: 'AI 返回为空，可能是模型未正确配置。'})
     }
   } catch (e) {
-    messages.value.push({role: 'assistant', content: '抱歉，AI服务暂时不可用。'})
+    const reason = e?.message || e?.data?.message || '未知错误'
+    messages.value.push({role: 'assistant', content: `AI 服务调用失败：${reason}`})
+    console.error('[AI Chat] error:', e)
   } finally {
     chatLoading.value = false
     await nextTick()
