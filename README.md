@@ -400,3 +400,10 @@ cloud-mail 同样采用 MIT License 开源，为本项目提供了完整的邮�
 - [Telegram 群组](https://t.me/cunzhangtech)
 - Issues / PRs 欢迎
 
+## 关于作者
+
+| 站点 | 链接 | 说明 |
+| --- | --- | --- |
+| 🏛️ 村长实验室 | [czlab.com](https://czlab.com) | 有趣的工具、实验项目与技术分享 |
+| 📝 村长博客 | [cunzhangblog.com](https://cunzhangblog.com) | 个人技术博客与内容创作 |
+
