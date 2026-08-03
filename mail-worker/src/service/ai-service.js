@@ -2,7 +2,8 @@ import { aiProviderConst } from '../const/entity-const';
 import settingService from './setting-service';
 import BizError from '../error/biz-error';
 
-const WORKERS_AI_MODEL = '@cf/meta/llama-3.1-8b-instruct';
+// 旧模型 @cf/meta/llama-3.1-8b-instruct 已于 2026-05-30 弃用，迁移到 Llama 4 Scout
+const WORKERS_AI_MODEL = '@cf/meta/llama-4-scout-17b-16e-instruct';
 
 const aiService = {
 

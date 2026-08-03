@@ -269,7 +269,7 @@ export const aiChatReplies = [
 export const aiStatusInfo = {
   provider: 0,                       // 0=Workers AI
   primaryLabel: 'Workers AI (免费)',
-  primaryModel: '@cf/meta/llama-3.1-8b-instruct',
+  primaryModel: '@cf/meta/llama-4-scout-17b-16e-instruct',
   primaryBaseUrl: 'Cloudflare 内置',
   hasWorkersAI: true,
   fallbackEnabled: true,
