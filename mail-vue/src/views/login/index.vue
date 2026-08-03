@@ -364,10 +364,9 @@ const submit = () => {
   if (!form.password) { ElMessage({ message: t('emptyPwdMsg'), type: 'error', plain: true }); return }
   loginLoading.value = true
   login(email, form.password).then(async data => { await saveToken(data.token) })
-    .catch(async () => {
-      // 后端未启动 → 自动 fallback 演示模式
-      ElMessage({ message: '后端未启动，已自动进入演示模式', type: 'warning', duration: 2500, plain: true })
-      await saveTokenDemo()
+    .catch(res => {
+      const msg = res?.message || '登录失败，请检查账号密码或系统状态'
+      ElMessage({ message: msg, type: 'error', duration: 3500, plain: true, showClose: true })
     })
     .finally(() => { loginLoading.value = false })
 }
@@ -379,9 +378,10 @@ async function saveToken(token) {
   try {
     user = await loginUserInfo();
   } catch (e) {
-    // 登录成功但取用户信息失败（例如跨域或后端状态不一致）→ demo兜底
-    ElMessage({ message: '用户信息获取失败，进入演示模式', type: 'warning', duration: 2500, plain: true })
-    return saveTokenDemo()
+    localStorage.removeItem('token')
+    const msg = e?.message || '用户信息获取失败，请稍后重试'
+    ElMessage({ message: msg, type: 'error', duration: 3500, plain: true, showClose: true })
+    return
   }
   accountStore.currentAccountId = user.account.accountId;
   accountStore.currentAccount = user.account;
