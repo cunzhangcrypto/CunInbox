@@ -5,17 +5,17 @@ export function websiteConfig() {
 }
 
 export function settingQuery() {
-    return http.get('/sys-setting/query')
+    return http.get('/setting/query')
 }
 
 export function settingSet(data) {
-    return http.post('/sys-setting/set', data)
+    return http.put('/setting/set', data)
 }
 
 export function setBackground(image) {
-    return http.post('/sys-setting/setBackground', image)
+    return http.put('/setting/setBackground', image)
 }
 
 export function deleteBackground() {
-    return http.post('/sys-setting/deleteBackground')
+    return http.delete('/setting/deleteBackground')
 }
