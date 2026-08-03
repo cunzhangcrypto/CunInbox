@@ -161,9 +161,15 @@ CunInbox 推荐两种部署方式：**GitHub Action 一键部署**（零配置�
 #### Step 2：创建 Cloudflare API Token
 
 进入 [API Tokens 页面](https://dash.cloudflare.com/profile/api-tokens)：
-- 选择「Use template → Edit Cloudflare Workers」模板
-- 额外添加 **D1 / KV / R2 / Account Settings / Zone Settings** 的「Edit」权限
-- 生成 Token 后复制保存（只显示一次）
+
+1. 选择「Use template → Edit Cloudflare Workers」模板
+   - 模板已自带：Workers Scripts / KV Storage / R2 Storage / Account Settings (Read) / Workers Routes / Zone Workers Routes
+2. 手动添加 **D1 → Edit** 权限（模板默认不含 D1）
+3. 「Account Settings」保持默认的 Read 即可，无需改 Edit
+4. 生成 Token 后复制保存（只显示一次）
+
+> 不需要找「Zone Settings」选项，Workers 模板自带的权限已足够部署。
+> 若后面要绑定自定义域名，可在 Token 编辑页补加「Zone / DNS / Edit」。
 
 同时复制 Cloudflare 账户 ID（Workers 首页右上角或 URL 里）。
 
