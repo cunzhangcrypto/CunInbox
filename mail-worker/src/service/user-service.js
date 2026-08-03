@@ -290,7 +290,10 @@ import oauthService from "./oauth-service";
 				sendAction.hasPerm = false;
 			}
 
-			if (isAdminEmail(c, user.email)) {
+			// 管理员判定与登录保持一致（含唯一用户兜底），确保列表页角色/发件权限显示正确
+			const { isAdmin } = await userService.isAdminUser(c, userId);
+
+			if (isAdmin) {
 				sendAction.sendType = constant.ADMIN_ROLE.sendType;
 				sendAction.sendCount = constant.ADMIN_ROLE.sendCount;
 				sendAction.hasPerm = true;

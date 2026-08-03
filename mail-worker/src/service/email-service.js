@@ -175,13 +175,16 @@ const emailService = {
 		const userRow = await userService.selectById(c, userId);
 		const roleRow = await roleService.selectById(c, userRow.type);
 
+		// 管理员判定与登录时保持一致（含唯一用户兜底），避免兜底管理员被误判为普通用户而 ban 掉发件
+		const { isAdmin } = await userService.isAdminUser(c, userId);
+
 		//判断接收方是不是全部为站内邮箱
 		const allInternal = receiveEmail.every(email => {
 			const domain = '@' + emailUtils.getDomain(email);
 			return domainList.includes(domain);
 		});
 
-		if (!userService.isAdminEmail(c, userRow.email)) {
+		if (!isAdmin) {
 
 			//发件被禁用
 			if (roleRow.sendType === 'ban') {
@@ -196,7 +199,7 @@ const emailService = {
 		}
 
 		//如果不是管理员，权限设置了发送次数
-		if (!userService.isAdminEmail(c, userRow.email) && roleRow.sendCount) {
+		if (!isAdmin && roleRow.sendCount) {
 
 			if (userRow.sendCount >= roleRow.sendCount) {
 				if (roleRow.sendType === 'day') throw new BizError(t('daySendLimit'), 403);
@@ -220,7 +223,7 @@ const emailService = {
 			throw new BizError(t('sendEmailNotCurUser'));
 		}
 
-		if (!userService.isAdminEmail(c, userRow.email)) {
+		if (!isAdmin) {
 			//用户没有这个域名的使用权限
 			if(!roleService.hasAvailDomainPerm(roleRow.availDomain, accountRow.email)) {
 				throw new BizError(t('noDomainPermSend'),403)

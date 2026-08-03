@@ -177,12 +177,15 @@ const publicService = {
 
 		const userRow = await userService.selectByEmailIncludeDel(c, email);
 
-		if (!userService.isAdminEmail(c, email)) {
-			throw new BizError(t('notAdmin'));
-		}
-
 		if (!userRow || userRow.isDel === isDel.DELETE) {
 			throw new BizError(t('notExistUser'));
+		}
+
+		// 管理员判定与登录保持一致（含唯一用户兜底）
+		const { isAdmin } = await userService.isAdminUser(c, userRow.userId);
+
+		if (!isAdmin) {
+			throw new BizError(t('notAdmin'));
 		}
 
 		if (!await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password)) {

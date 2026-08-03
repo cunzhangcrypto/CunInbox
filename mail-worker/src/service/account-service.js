@@ -60,7 +60,10 @@ const accountService = {
 		const userRow = await userService.selectById(c, userId);
 		const roleRow = await roleService.selectById(c, userRow.type);
 
-		if (!userService.isAdminEmail(c, userRow.email)) {
+		// 管理员判定与登录保持一致（含唯一用户兜底）
+		const { isAdmin } = await userService.isAdminUser(c, userId);
+
+		if (!isAdmin) {
 
 			if (roleRow.accountCount > 0) {
 				const userAccountCount = await accountService.countUserAccount(c, userId)
