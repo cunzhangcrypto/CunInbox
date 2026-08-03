@@ -32,7 +32,7 @@ not_found_handling = "single-page-application"
 run_worker_first = true
 
 [triggers]
-crons = ["0 16 * * *"]	#定时任务每天晚上12点执行
+crons = ["0 0 * * *"]	#定时任务每天北京时间早上8点执行(UTC 0:00)
 
 
 [vars]
