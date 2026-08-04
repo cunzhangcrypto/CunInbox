@@ -78,7 +78,7 @@ jobs:
           D1_DATABASE_ID=$(printf '%s' "$D1_DATABASE_ID" | trim_secret)
           KV_NAMESPACE_ID=$(printf '%s' "$KV_NAMESPACE_ID" | trim_secret)
           R2_BUCKET_NAME=$(printf '%s' "$R2_BUCKET_NAME" | trim_secret)
-          CUSTOM_DOMAIN=$(printf '%s' "$CUSTOM_DOMAIN" | trim_secret)
+          CUSTOM_DOMAIN=$(printf '%s' "$CUSTOM_DOMAIN" | trim_secret | sed 's|^https\?://||; s|/.*$||; s|/$||')
           NAME=$(printf '%s' "$NAME" | trim_secret)
 
           if [ -z "$JWT_SECRET" ] || grep -q '[?%#/\\]' <<< "$JWT_SECRET"; then
@@ -96,7 +96,7 @@ jobs:
             exit 1
           fi
 
-          echo "🔧 Sanitized secrets → ADMIN=$ADMIN DOMAIN=$DOMAIN NAME=$NAME"
+          echo "🔧 Sanitized secrets → ADMIN=$ADMIN DOMAIN=$DOMAIN NAME=$NAME CUSTOM_DOMAIN=$CUSTOM_DOMAIN"
 
           # 将 trim 后的值写入 GITHUB_ENV，让后续步骤（如 init）使用相同的值
           echo "JWT_SECRET=$JWT_SECRET" >> $GITHUB_ENV
