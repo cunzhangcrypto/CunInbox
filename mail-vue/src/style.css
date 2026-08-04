@@ -64,8 +64,8 @@ body {
 
     /* === 文字三级 === */
     --ci-text-1: #e5edff;          /* 主文字 */
-    --ci-text-2: #94a3b8;          /* 次文字 */
-    --ci-text-3: #5a6d8a;          /* 辅助文字 */
+    --ci-text-2: #cbd5e1;          /* 次文字 */
+    --ci-text-3: #8ba1bd;          /* 辅助文字 */
 
     /* === 蒙层/玻璃 === */
     --ci-glass: rgba(15, 23, 43, 0.55);
@@ -101,8 +101,8 @@ body {
     --el-border-color-light: #273656;
     --el-border-color-lighter: #1a2744;
     --el-text-color-primary: #e5edff;
-    --el-text-color-regular: #94a3b8;
-    --el-text-color-secondary: #5a6d8a;
+    --el-text-color-regular: #cbd5e1;
+    --el-text-color-secondary: #8ba1bd;
     --el-text-color-placeholder: #475569;
     --el-mask-color: rgba(7, 11, 23, 0.7);
     --el-overlay-color: rgba(7, 11, 23, 0.7);
@@ -114,18 +114,18 @@ body {
     --loadding-background: rgba(7, 11, 23, 0.85);
     --dark-border: #273656;
     --base-fill: #0f172b;
-    --regular-text-color: #94a3b8;
+    --regular-text-color: #cbd5e1;
     --light-border-color: #1a2744;
     --aside-right-border: 2px 0 8px rgba(0, 0, 0, 0.45);
     --choose-account-background: rgba(0, 229, 255, 0.08);
-    --email-scroll-content-color: rgba(148, 163, 184, 0.4);
+    --email-scroll-content-color: rgba(203, 213, 225, 0.55);
     --email-hover-background: #141e36;
     --login-border: none;
-    --form-desc-color: #94a3b8;
+    --form-desc-color: #cbd5e1;
     --login-switch-color: #00e5ff;
     --scrollbar-track-color: #273656;
     --base-border-color: #1a2744;
-    --secondary-text-color: #94a3b8;
+    --secondary-text-color: #cbd5e1;
     --message-block-color: rgba(7, 11, 23, 0.4);
     --loading-hide-transition: all 200ms;
 
