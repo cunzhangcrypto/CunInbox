@@ -40,7 +40,7 @@ function updateContent() {
                     'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         font-size: 14px;
         line-height: 1.5;
-        color: #FFFFFF;
+        color: #13181D;
         word-break: break-word;
       }
 
@@ -55,11 +55,11 @@ function updateContent() {
 
       a {
         text-decoration: none;
-        color: #4D9FFF;
+        color: #0E70DF;
       }
 
       .shadow-content {
-        background: transparent;
+        background: #FFFFFF;
         width: fit-content;
         height: fit-content;
         min-width: 100%;
