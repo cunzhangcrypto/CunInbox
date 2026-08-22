@@ -54,6 +54,14 @@
             <Icon icon="mdi:email-outline" width="14" height="14" />
             <span>{{ item.identityEmail || '未绑定' }}</span>
           </div>
+          <div class="card-info" v-if="displaySiteUrl(item)">
+            <Icon icon="mdi:link-variant" width="14" height="14" />
+            <a class="site-url-link" :href="normalizeSiteUrl(item)" target="_blank" rel="noopener noreferrer"
+               :title="displaySiteUrl(item)" @click.stop>
+              <span class="ellipsis">{{ displaySiteUrl(item) }}</span>
+              <Icon icon="mdi:open-in-new" width="12" height="12" />
+            </a>
+          </div>
           <div class="card-info" v-if="item.purpose">
             <Icon icon="mdi:text-outline" width="14" height="14" />
             <span class="ellipsis">{{ item.purpose }}</span>
@@ -110,6 +118,9 @@
         </el-form-item>
         <el-form-item label="身份邮箱">
           <el-input v-model="form.identityEmail" placeholder="github@czlab.dev" />
+        </el-form-item>
+        <el-form-item label="站点网址">
+          <el-input v-model="form.siteUrl" placeholder="https://github.com 或 github.com" />
         </el-form-item>
         <el-form-item label="注册时间">
           <el-date-picker v-model="form.registerTime" type="date" value-format="YYYY-MM-DD" style="width:100%" />
@@ -168,6 +179,7 @@ const form = reactive({
   platformName: '',
   category: 'other',
   identityEmail: '',
+  siteUrl: '',
   registerTime: '',
   purpose: '',
   remark: ''
@@ -251,11 +263,20 @@ function onPlatformChange(val) {
   }
 }
 
+function normalizeSiteUrl(item) {
+  const url = (item?.siteUrl || '').trim()
+  if (!url) return ''
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`
+}
+function displaySiteUrl(item) {
+  return (item?.siteUrl || item?.platformDomain || '').trim()
+}
+
 function showAddDialog() {
   editMode.value = false
   Object.assign(form, {
     identityId: null, name: '', platformId: 0, platformName: '', category: 'other',
-    identityEmail: '', registerTime: '', purpose: '', remark: ''
+    identityEmail: '', siteUrl: '', registerTime: '', purpose: '', remark: ''
   })
   dialogShow.value = true
 }
@@ -264,7 +285,7 @@ function showEditDialog(item) {
   editMode.value = true
   Object.assign(form, {
     identityId: item.identityId, name: item.name, platformId: item.platformId,
-    category: item.category, identityEmail: item.identityEmail,
+    category: item.category, identityEmail: item.identityEmail, siteUrl: item.siteUrl || '',
     registerTime: item.registerTime, purpose: item.purpose, remark: item.remark
   })
   dialogShow.value = true
@@ -407,6 +428,15 @@ onMounted(() => {
       font-size: 13px; color: var(--regular-text-color);
       margin-bottom: 6px;
       .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    }
+    .site-url-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      max-width: 220px;
+      color: var(--el-color-primary);
+      text-decoration: none;
+      &:hover { text-decoration: underline; }
     }
   }
   .card-footer {

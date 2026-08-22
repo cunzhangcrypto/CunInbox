@@ -6,6 +6,7 @@ export const identity = sqliteTable('identity', {
 	platformId: integer('platform_id').default(0).notNull(),
 	accountId: integer('account_id').default(0).notNull(),
 	identityEmail: text('identity_email').default('').notNull(),
+	siteUrl: text('site_url').default(''),
 	name: text('name').default('').notNull(),
 	category: text('category').default('other').notNull(),
 	status: integer('status').default(0).notNull(),

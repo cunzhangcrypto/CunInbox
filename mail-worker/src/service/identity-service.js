@@ -80,7 +80,7 @@ const identityService = {
 
 	async add(c, params, userId) {
 
-		const { name, platformId, accountId, identityEmail, category, registerTime, purpose, remark } = params;
+		const { name, platformId, accountId, identityEmail, siteUrl, category, registerTime, purpose, remark } = params;
 
 		if (!name) {
 			throw new BizError('身份名称不能为空');
@@ -91,6 +91,7 @@ const identityService = {
 			platformId: platformId || 0,
 			accountId: accountId || 0,
 			identityEmail: identityEmail || '',
+			siteUrl: siteUrl || '',
 			name: name,
 			category: category || 'other',
 			status: identityConst.status.ACTIVE,
@@ -111,7 +112,7 @@ const identityService = {
 
 	async update(c, params, userId) {
 
-		const { identityId, name, platformId, accountId, identityEmail, category, status, registerTime, purpose, remark } = params;
+		const { identityId, name, platformId, accountId, identityEmail, siteUrl, category, status, registerTime, purpose, remark } = params;
 
 		const identityRow = await this.selectById(c, identityId, userId);
 
@@ -121,7 +122,8 @@ const identityService = {
 
 		await orm(c).update(identity).set({
 			name, platformId: platformId || 0, accountId: accountId || 0,
-			identityEmail, category, status: status !== undefined ? status : identityRow.status,
+			identityEmail, siteUrl: siteUrl || '',
+			category, status: status !== undefined ? status : identityRow.status,
 			registerTime, purpose, remark
 		}).where(eq(identity.identityId, identityId)).run();
 
